@@ -13,9 +13,9 @@ npm i && npm start
 
 Click share on file in Finder or Files and set access setting to `Anyone with the link`.
 
-Then copy iCloud link, encode it using `encodeURIComponent(url)` function in browser console and append encoded link to endpoint. Now link should look like this:
+Copy iCloud link and add in the url query param link to endpoint. Now link should look like this:
 ``` bash
-http://localhost:3000/stream/https%3A%2F%2Fwww.icloud.com%2Ficlouddrive%2F...
+http://192.168.31.147:3000/stream?url=https://www.icloud.com/iclouddrive/...
 ```
 
 And now you can paste it in browser, VLC player etc.

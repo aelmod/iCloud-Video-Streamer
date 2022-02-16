@@ -17,8 +17,8 @@ app.use(bodyParser.raw());
 //TODO: implement API to get link with correct file name
 // app.post('/api/stream', (req, res) => {})
 
-app.get('/stream/:url', (req, res) => {
-    const iCloudUrl = req.params['url'];
+app.get('/stream', (req, res) => {
+    const iCloudUrl = req.query['url'];
 
     getStreamParams(iCloudUrl)
         .then(({url, contentLength}) => {
@@ -64,6 +64,7 @@ function startStreaming(url, iCloudUrl, range, res) {
                 console.log('Stream Closed')
 
             if (error !== undefined && error.response && error.response.statusCode === 410) {
+                console.log('Refresh iCloud URL');
                 downloadStream.destroy();
 
                 getStreamParams(iCloudUrl, true)
@@ -76,10 +77,10 @@ function startStreaming(url, iCloudUrl, range, res) {
 const cache = new Map;
 
 function getStreamParams(url, refreshUrlInCache) {
-    let cacheStreamParams = cache.get(url);
-    if (!!cacheStreamParams && !refreshUrlInCache) {
+    let cachedStreamParams = cache.get(url);
+    if (!!cachedStreamParams && !refreshUrlInCache) {
         console.log(`Get stream params from cache for ${url}`)
-        return new Promise(resolve => resolve(cacheStreamParams))
+        return new Promise(resolve => resolve(cachedStreamParams))
     }
 
     return (async () => {
