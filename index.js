@@ -15,9 +15,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.raw());
 
 //TODO: implement API to get link with correct file name
-// app.post('/api/stream', (req, res) => {
-//
-// })
+// app.post('/api/stream', (req, res) => {})
 
 app.get('/stream/:url', (req, res) => {
     const iCloudUrl = req.params['url'];
@@ -38,9 +36,7 @@ app.get('/stream/:url', (req, res) => {
             }
 
             const {start, end} = getRange(rangeHeader, contentLength);
-            // Handle unavailable range request
             if (start >= contentLength || end >= contentLength) {
-                // Return the 416 Range Not Satisfiable.
                 res.writeHead(416, {
                     "Content-Range": `bytes */${contentLength}`
                 });
@@ -114,7 +110,6 @@ function getStreamOptions(range) {
         hooks: {
             beforeRequest: [
                 options => {
-                    // options.headers = {...options.headers, Range: `bytes=${downloadRange}-${finalRange}`}
                     options.headers = {...options.headers, Range: range}
                 }
             ]
