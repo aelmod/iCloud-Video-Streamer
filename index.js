@@ -113,23 +113,23 @@ function startStreaming(directUrl, iCloudUrl, rangeHeader, res) {
 
 const cache = new Map;
 
-function getStreamParams(url, refreshUrlInCache) {
-    let cachedStreamParams = cache.get(url);
-    if (!!cachedStreamParams && !refreshUrlInCache) {
-        console.log(`Get stream params from cache for ${url}`)
+function getStreamParams(iCloudUrl, removeUrlFromCache) {
+    let cachedStreamParams = cache.get(iCloudUrl);
+    if (!!cachedStreamParams && !removeUrlFromCache) {
+        console.log(`Get stream params from cache for ${iCloudUrl}`)
         return new Promise(resolve => resolve(cachedStreamParams))
     }
 
-    return findDirectUrlViaAPI(url)
+    return findDirectUrlViaAPI(iCloudUrl)
         .catch(err => {
             console.log(err)
-            return findDirectUrlViaBrowser(url)
+            return findDirectUrlViaBrowser(iCloudUrl)
         })
 }
 
-function findDirectUrlViaAPI(url) {
+function findDirectUrlViaAPI(iCloudUrl) {
     return axios.post(`https://ckdatabasews.icloud.com/database/1/com.apple.cloudkit/production/public/records/resolve?ckjsBuildVersion=2207ProjectDev37&ckjsVersion=2.6.1&clientBuildNumber=2207Project40&clientMasteringNumber=2207B37&clientId=${uuidv4()}`, {
-        "shortGUIDs": [{"value": getFileId(url)}]
+        "shortGUIDs": [{"value": getFileId(iCloudUrl)}]
     })
         .then(res => {
             if (res.status === 200) {
@@ -141,18 +141,18 @@ function findDirectUrlViaAPI(url) {
                     contentLength: parseInt(contentLength, 10)
                 };
 
-                cache.set(url, streamParams);
+                cache.set(iCloudUrl, streamParams);
 
                 return streamParams;
             }
         })
 }
 
-function findDirectUrlViaBrowser(url) {
+function findDirectUrlViaBrowser(iCloudUrl) {
     return (async () => {
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
-        await page.goto(url);
+        await page.goto(iCloudUrl);
         await page.waitForSelector('.spinner-wrapper', {hidden: true});
         await page.click('.page-button-three', {delay: 1000});
         setTimeout(() => browser.close(), 10000);
@@ -164,7 +164,7 @@ function findDirectUrlViaBrowser(url) {
                         directUrl: response.url(),
                         contentLength: parseInt(response.headers()['content-length'], 10)
                     };
-                    cache.set(url, streamParams);
+                    cache.set(iCloudUrl, streamParams);
                     resolve(streamParams)
                 }
             })
