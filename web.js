@@ -14,12 +14,55 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(bodyParser.raw());
 
-//TODO: implement API to get link with correct file name
-// app.post('/api/stream', (req, res) => {})
+const linkToShortcut = new Map;
+
+app.post('/api/stream', (req, res) => {
+    const url = req.body.url;
+    if (isEmpty(url) || !isValidHttpUrl(url)) {
+        res.writeHead(400);
+        res.send('URL is not valid');
+        return
+    }
+
+    let fileName = url.split('#').pop();
+    if (fileName.startsWith('https://')) {
+        fileName = 'movie'
+    }
+    fileName = fileName + '.mp4'
+
+    let filePath = url.split('/').pop().split('#')[0] + '/' + fileName;
+
+    linkToShortcut.set(filePath, url);
+
+    res.send('http://192.168.31.147:3000/api/stream/' + filePath);
+})
+
+app.get('/api/stream/:fileId/:fileName', (req, res) => {
+    const fileId = req.params['fileId'];
+    const fileName = req.params['fileName'];
+
+    if (isEmpty(fileId) || isEmpty(fileName)) {
+        res.writeHead(400);
+        res.send('fileId and fileName required');
+        return
+    }
+
+    const url = linkToShortcut.get(fileId + '/' + fileName);
+
+    if (url === undefined) {
+        res.writeHead(400);
+        res.send('Wrong data');
+        return
+    }
+
+    streamFile(url, req, res);
+})
 
 app.get('/stream', (req, res) => {
-    const iCloudUrl = req.query['url'];
+    streamFile(req.query['url'], req, res);
+})
 
+function streamFile(iCloudUrl, req, res) {
     getStreamParams(iCloudUrl)
         .then(({url, contentLength}) => {
             const rangeHeader = req.headers.range;
@@ -52,7 +95,7 @@ app.get('/stream', (req, res) => {
 
             startStreaming(url, iCloudUrl, rangeHeader, res);
         })
-})
+}
 
 function startStreaming(url, iCloudUrl, range, res) {
     const downloadStream = got.stream(url, getStreamOptions(range));
@@ -136,6 +179,18 @@ function getRange(rangeHeader, size) {
 
 function isEmpty(str) {
     return (!str || str.length === 0);
+}
+
+function isValidHttpUrl(string) {
+    let url;
+
+    try {
+        url = new URL(string);
+    } catch (_) {
+        return false;
+    }
+
+    return url.protocol === "http:" || url.protocol === "https:";
 }
 
 app.listen(port, '0.0.0.0', () => {
