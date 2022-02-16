@@ -2,21 +2,21 @@
   "name": "icloud-video-streamer",
   "version": "0.1.0",
   "description": "Stream your videos or films from the iCloud Drive",
-  "main": "web.js",
+  "main": "index.js",
   "scripts": {
-    "start-web": "node web.js",
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-  },
   "dependencies": {
-    "express": "^4.17.2",
-    "puppeteer": "^13.3.2",
+    "axios": "^0.26.0",
     "body-parser": "^1.19.1",
-    "got": "^12.0.1"
+    "express": "^4.17.2",
+    "got": "^12.0.1",
+    "puppeteer": "^13.3.2",
+    "uuid": "^8.3.2"
   },
   "type": "module"
 }

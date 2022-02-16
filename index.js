@@ -4,58 +4,54 @@ import stream from 'stream';
 import util from 'util';
 import express from 'express';
 import bodyParser from 'body-parser';
+import axios from 'axios';
+import {v4 as uuidv4} from 'uuid';
+import {getRange, getFileId, isEmpty, getStreamOptions, isValidHttpUrl} from './util.js'
 
 const pipeline = util.promisify(stream.pipeline);
 
 const app = express()
 const port = 3000
+const host = 'http://192.168.31.147:3000'; //TODO: move into env variables
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(bodyParser.raw());
 
-const linkToShortcut = new Map;
+const iCloudUrlToShortcut = new Map;
 
 app.post('/api/stream', (req, res) => {
-    const url = req.body.url;
-    if (isEmpty(url) || !isValidHttpUrl(url)) {
-        res.writeHead(400);
-        res.send('URL is not valid');
+    const iCloudUrl = req.body.url;
+    if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
+        res.status(400).send({err: 'URL is not valid'});
         return
     }
 
-    let fileName = url.split('#').pop();
+    let fileName = iCloudUrl.split('#').pop();
     if (fileName.startsWith('https://')) {
         fileName = 'movie'
     }
     fileName = fileName + '.mp4'
 
-    let filePath = url.split('/').pop().split('#')[0] + '/' + fileName;
+    let filePath = iCloudUrl.split('/').pop().split('#')[0] + '/' + fileName;
 
-    linkToShortcut.set(filePath, url);
+    iCloudUrlToShortcut.set(filePath, iCloudUrl);
 
-    res.send('http://192.168.31.147:3000/api/stream/' + filePath);
+    res.send({url: host + '/api/stream/' + filePath});
 })
 
 app.get('/api/stream/:fileId/:fileName', (req, res) => {
     const fileId = req.params['fileId'];
     const fileName = req.params['fileName'];
 
-    if (isEmpty(fileId) || isEmpty(fileName)) {
-        res.writeHead(400);
-        res.send('fileId and fileName required');
+    const iCloudUrl = iCloudUrlToShortcut.get(fileId + '/' + fileName);
+
+    if (isEmpty(fileId) || isEmpty(fileName) || iCloudUrl === undefined) {
+        res.status(400).send({err: 'fileId and fileName required'});
         return
     }
 
-    const url = linkToShortcut.get(fileId + '/' + fileName);
-
-    if (url === undefined) {
-        res.writeHead(400);
-        res.send('Wrong data');
-        return
-    }
-
-    streamFile(url, req, res);
+    streamFile(iCloudUrl, req, res);
 })
 
 app.get('/stream', (req, res) => {
@@ -64,7 +60,7 @@ app.get('/stream', (req, res) => {
 
 function streamFile(iCloudUrl, req, res) {
     getStreamParams(iCloudUrl)
-        .then(({url, contentLength}) => {
+        .then(({directUrl, contentLength}) => {
             const rangeHeader = req.headers.range;
 
             if (isEmpty(rangeHeader)) {
@@ -73,9 +69,7 @@ function streamFile(iCloudUrl, req, res) {
                     "Content-Type": "video/mp4"
                 });
 
-                res.end()
-
-                return
+                return res.end()
             }
 
             const {start, end} = getRange(rangeHeader, contentLength);
@@ -93,12 +87,12 @@ function streamFile(iCloudUrl, req, res) {
                 "Content-Type": "video/mp4"
             });
 
-            startStreaming(url, iCloudUrl, rangeHeader, res);
+            startStreaming(directUrl, iCloudUrl, rangeHeader, res);
         })
 }
 
-function startStreaming(url, iCloudUrl, range, res) {
-    const downloadStream = got.stream(url, getStreamOptions(range));
+function startStreaming(directUrl, iCloudUrl, rangeHeader, res) {
+    const downloadStream = got.stream(directUrl, getStreamOptions(rangeHeader));
 
     pipeline(downloadStream, res)
         .then(() => console.log(`Stream Started`))
@@ -111,7 +105,7 @@ function startStreaming(url, iCloudUrl, range, res) {
                 downloadStream.destroy();
 
                 getStreamParams(iCloudUrl, true)
-                    .then(({url}) => startStreaming(url, iCloudUrl, range, res))
+                    .then(({directUrl}) => startStreaming(directUrl, iCloudUrl, rangeHeader, res))
                     .catch(error => console.log(error));
             }
         });
@@ -126,19 +120,48 @@ function getStreamParams(url, refreshUrlInCache) {
         return new Promise(resolve => resolve(cachedStreamParams))
     }
 
+    return findDirectUrlViaAPI(url)
+        .catch(err => {
+            console.log(err)
+            return findDirectUrlViaBrowser(url)
+        })
+}
+
+function findDirectUrlViaAPI(url) {
+    return axios.post(`https://ckdatabasews.icloud.com/database/1/com.apple.cloudkit/production/public/records/resolve?ckjsBuildVersion=2207ProjectDev37&ckjsVersion=2.6.1&clientBuildNumber=2207Project40&clientMasteringNumber=2207B37&clientId=${uuidv4()}`, {
+        "shortGUIDs": [{"value": getFileId(url)}]
+    })
+        .then(res => {
+            if (res.status === 200) {
+                let directUrl = res.data['results'][0]['rootRecord']['fields']['fileContent']['value']['downloadURL'];
+                let contentLength = res.data['results'][0]['rootRecord']['fields']['size']['value'];
+
+                let streamParams = {
+                    directUrl: directUrl,
+                    contentLength: parseInt(contentLength, 10)
+                };
+
+                cache.set(url, streamParams);
+
+                return streamParams;
+            }
+        })
+}
+
+function findDirectUrlViaBrowser(url) {
     return (async () => {
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
         await page.goto(url);
         await page.waitForSelector('.spinner-wrapper', {hidden: true});
         await page.click('.page-button-three', {delay: 1000});
-        setTimeout(() => browser.close(), 10000)
+        setTimeout(() => browser.close(), 10000);
 
         return new Promise(resolve =>
             page.on('response', response => {
                 if (response.status() === 200 && response.url().startsWith("https://cvws.icloud-content.com")) {
                     let streamParams = {
-                        url: response.url(),
+                        directUrl: response.url(),
                         contentLength: parseInt(response.headers()['content-length'], 10)
                     };
                     cache.set(url, streamParams);
@@ -146,51 +169,7 @@ function getStreamParams(url, refreshUrlInCache) {
                 }
             })
         )
-    })()
-}
-
-function getStreamOptions(range) {
-    return {
-        hooks: {
-            beforeRequest: [
-                options => {
-                    options.headers = {...options.headers, Range: range}
-                }
-            ]
-        }
-    };
-}
-
-function getRange(rangeHeader, size) {
-    let [start, end] = rangeHeader.replace(/bytes=/, "").split("-");
-    start = parseInt(start, 10);
-    end = end ? parseInt(end, 10) : size - 1;
-
-    if (!isNaN(start) && isNaN(end)) {
-        end = size - 1;
-    }
-    if (isNaN(start) && !isNaN(end)) {
-        start = size - end;
-        end = size - 1;
-    }
-
-    return {start: start, end: end}
-}
-
-function isEmpty(str) {
-    return (!str || str.length === 0);
-}
-
-function isValidHttpUrl(string) {
-    let url;
-
-    try {
-        url = new URL(string);
-    } catch (_) {
-        return false;
-    }
-
-    return url.protocol === "http:" || url.protocol === "https:";
+    })();
 }
 
 app.listen(port, '0.0.0.0', () => {

@@ -9,13 +9,73 @@ Stream videos from iCloud
 npm i && npm start
 ```
 
+# Share video file
+
+Click share on file in Finder or Files and set access setting to `Anyone with the link` and copy iCloud link.
+
+---
+
 # Stream video file
 
-Click share on file in Finder or Files and set access setting to `Anyone with the link`.
-
-Copy iCloud link and add in the url query param link to endpoint. Now link should look like this:
+You can use direct way, but not all players supports this way.
+Add iCloud URL in `url` query param. Link should look like this:
 ``` bash
-http://192.168.31.147:3000/stream?url=https://www.icloud.com/iclouddrive/...
+http://localhost:3000/stream?url=https://www.icloud.com/iclouddrive/...
 ```
 
-And now you can paste it in browser, VLC player etc.
+---
+Or use API endpoints:
+
+**Init proxy file**
+----
+Returns proxy file URL
+
+* **URL:**
+
+  `/api/stream`
+
+* **Method:**
+
+  `POST`
+
+* **Data Params:**
+
+  `{ "url": "https://www.icloud.com/iclouddrive/...#..." }`
+
+* **Success Response:**
+
+    * **Code:** 200 OK<br />
+      **Content:** `{ url: "http://localhost:3000/api/stream/.../01-_Pilot.mp4" }`
+
+* **Error Response:**
+
+    * **Code:** 400 BAD REQUEST <br />
+      **Content:** `{ "err":"URL is not valid" }`
+
+**Get stream**
+----
+Proxy file URL (you can paste it in browser, VLC player etc.)
+
+* **URL:**
+
+  `/api/stream`
+
+* **Method:**
+
+  `GET`
+
+* **Success Response:**
+
+    * **Code:** 200 OK<br />
+      **Content:** `empty`
+
+  OR
+
+    * **Code:** 206 PARTIAL CONTENT <br />
+      **Content:** `HTTP range stream`
+
+* **Error Response:**
+
+    * **Code:** 400 BAD REQUEST <br />
+      **Content:** `{ "err":"fileId and fileName required" }`
+
