@@ -7,10 +7,7 @@ COPY index.js .
 COPY util.js .
 COPY .env .
 
-RUN export arch=$(arch | sed s/aarch64/arm64/ | sed s/x86_64/amd64/)
-RUN if [ "$arch" = "arm64" ]; then export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true; fi
-
-RUN npm install
+RUN arch=$(arch | sed s/aarch64/arm64/ | sed s/x86_64/amd64/) && if [ "$arch" = "arm64" ]; then export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true; fi && npm install
 
 USER node
 
