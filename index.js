@@ -7,12 +7,13 @@ import bodyParser from 'body-parser';
 import axios from 'axios';
 import {v4 as uuidv4} from 'uuid';
 import {getRange, getFileId, isEmpty, getStreamOptions, isValidHttpUrl} from './util.js'
+import 'dotenv/config'
 
 const pipeline = util.promisify(stream.pipeline);
 
 const app = express()
 const port = 3000
-const host = 'http://192.168.31.147:3000'; //TODO: move into env variables
+const host = process.env.HOST
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());

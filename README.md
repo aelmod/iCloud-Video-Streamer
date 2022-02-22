@@ -10,7 +10,7 @@ npm i && npm start
 ```
 
 # Docker
-
+Rename .env.example to .env and change host
 ``` bash
 docker build -t icloud-streamer:latest .
 docker run -d --restart unless-stopped -p 3000:3000 icloud-streamer:latest
