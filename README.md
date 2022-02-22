@@ -9,6 +9,13 @@ Stream videos from iCloud
 npm i && npm start
 ```
 
+# Docker
+
+``` bash
+docker build -t icloud-streamer:latest .
+docker run -d --restart unless-stopped -p 3000:3000 icloud-streamer:latest
+```
+
 # Share video file
 
 Click share on file in Finder or Files and set access setting to `Anyone with the link` and copy iCloud link.
