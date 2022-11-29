@@ -9,6 +9,8 @@ import {v4 as uuidv4} from 'uuid';
 import {getRange, getFileId, isEmpty, getStreamOptions, isValidHttpUrl} from './util.js'
 import 'dotenv/config'
 
+const ICLOUD_API = `https://ckdatabasews.icloud.com/database/1/com.apple.cloudkit/production/public/records/resolve?ckjsBuildVersion=2207ProjectDev37&ckjsVersion=2.6.1&clientBuildNumber=2207Project40&clientMasteringNumber=2207B37&clientId=${uuidv4()}`;
+
 const pipeline = util.promisify(stream.pipeline);
 
 const app = express()
@@ -53,6 +55,38 @@ app.get('/api/stream/:fileId/:fileName', (req, res) => {
     }
 
     streamFile(iCloudUrl, req, res);
+})
+
+app.get('/playlist', (req, response) => {
+    const iCloudUrl = req.query['url'];
+    if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
+        response.status(400).send({err: 'URL is not valid'});
+        return
+    }
+
+    return axios.post(ICLOUD_API, {
+        "shortGUIDs": [{"value": getFileId(iCloudUrl)}]
+    })
+        .then(res => {
+            if (res.status === 200) {
+                const directUrl = res.data['results'][0]['rootRecord']['fields']['fileContent']['value']['downloadURL'];
+
+                const fileName = res.data['results'][0]['share']['fields']['cloudkit.title']['value'];
+                const fileExtension = res.data['results'][0]['share']['fields']['cloudkit.type']['value'];
+
+                response.attachment(fileName + '.' + fileExtension + `.m3u`)
+                return response.send(
+                    [
+                        '#EXTM3U',
+                        `#EXTINF:-1,${fileName + '.' + fileExtension}`,
+                        directUrl
+                    ].join('\n')
+                );
+            }
+        })
+        .catch(error => {
+            response.status(500).send({err: error});
+        })
 })
 
 app.get('/stream', (req, res) => {
@@ -121,6 +155,7 @@ function getStreamParams(iCloudUrl, removeUrlFromCache) {
         return new Promise(resolve => resolve(cachedStreamParams))
     }
 
+    console.log(`Get stream params for ${iCloudUrl}`)
     return findDirectUrlViaAPI(iCloudUrl)
         .catch(err => {
             console.log(err)
@@ -129,7 +164,7 @@ function getStreamParams(iCloudUrl, removeUrlFromCache) {
 }
 
 function findDirectUrlViaAPI(iCloudUrl) {
-    return axios.post(`https://ckdatabasews.icloud.com/database/1/com.apple.cloudkit/production/public/records/resolve?ckjsBuildVersion=2207ProjectDev37&ckjsVersion=2.6.1&clientBuildNumber=2207Project40&clientMasteringNumber=2207B37&clientId=${uuidv4()}`, {
+    return axios.post(ICLOUD_API, {
         "shortGUIDs": [{"value": getFileId(iCloudUrl)}]
     })
         .then(res => {
