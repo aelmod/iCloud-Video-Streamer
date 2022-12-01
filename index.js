@@ -85,6 +85,7 @@ app.get('/playlist', (req, response) => {
             }
         })
         .catch(error => {
+            console.error(error)
             response.status(500).send({err: error});
         })
 })
@@ -132,11 +133,14 @@ function startStreaming(directUrl, iCloudUrl, rangeHeader, res) {
     pipeline(downloadStream, res)
         .then(() => console.log(`Stream Started`))
         .catch((error) => {
-            if (error !== undefined && error.code === 'ERR_STREAM_PREMATURE_CLOSE')
-                console.log('Stream Closed')
+            if (error !== undefined && error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
+                downloadStream.destroy();
+                console.log('Stream Closed:', error.message)
+            }
 
             if (error !== undefined && error.response && error.response.statusCode === 410) {
                 console.log('Refresh iCloud URL');
+                console.log('Stream Closed', error)
                 downloadStream.destroy();
 
                 getStreamParams(iCloudUrl, true)
