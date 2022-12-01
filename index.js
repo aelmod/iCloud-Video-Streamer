@@ -188,6 +188,9 @@ function findDirectUrlViaAPI(iCloudUrl) {
         })
 }
 
+/**
+ * @deprecated Will be deleted or should be updated. Use findDirectUrlViaAPI instead.
+ */
 function findDirectUrlViaBrowser(iCloudUrl) {
     return (async () => {
         const browser = await puppeteer.launch();
