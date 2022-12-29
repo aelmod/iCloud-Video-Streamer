@@ -8,6 +8,7 @@ import axios from 'axios';
 import {v4 as uuidv4} from 'uuid';
 import {getRange, getFileId, isEmpty, getStreamOptions, isValidHttpUrl} from './util.js'
 import 'dotenv/config'
+import * as Logger from './logger.js';
 
 const ICLOUD_API = `https://ckdatabasews.icloud.com/database/1/com.apple.cloudkit/production/public/records/resolve?ckjsBuildVersion=2207ProjectDev37&ckjsVersion=2.6.1&clientBuildNumber=2207Project40&clientMasteringNumber=2207B37&clientId=${uuidv4()}`;
 
@@ -85,7 +86,7 @@ app.get('/playlist', (req, response) => {
             }
         })
         .catch(error => {
-            console.error(error)
+            Logger.error(error)
             response.status(500).send({err: error});
         })
 })
@@ -131,21 +132,21 @@ function startStreaming(directUrl, iCloudUrl, rangeHeader, res) {
     const downloadStream = got.stream(directUrl, getStreamOptions(rangeHeader));
 
     pipeline(downloadStream, res)
-        .then(() => console.log(`Stream Started`))
+        .then(() => Logger.debug(`Stream Started`))
         .catch((error) => {
             if (error !== undefined && error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
                 downloadStream.destroy();
-                console.log('Stream Closed:', error.message)
+                Logger.error('Stream Closed:', error.message)
             }
 
             if (error !== undefined && error.response && error.response.statusCode === 410) {
-                console.log('Refresh iCloud URL');
-                console.log('Stream Closed', error)
+                Logger.debug('Refresh iCloud URL');
+                Logger.error('Stream Closed', error)
                 downloadStream.destroy();
 
                 getStreamParams(iCloudUrl, true)
                     .then(({directUrl}) => startStreaming(directUrl, iCloudUrl, rangeHeader, res))
-                    .catch(error => console.log(error));
+                    .catch(error => Logger.error(error));
             }
         });
 }
@@ -155,14 +156,14 @@ const cache = new Map;
 function getStreamParams(iCloudUrl, removeUrlFromCache) {
     let cachedStreamParams = cache.get(iCloudUrl);
     if (!!cachedStreamParams && !removeUrlFromCache) {
-        console.log(`Get stream params from cache for ${iCloudUrl}`)
+        Logger.debug(`Get stream params from cache for ${iCloudUrl}`)
         return new Promise(resolve => resolve(cachedStreamParams))
     }
 
-    console.log(`Get stream params for ${iCloudUrl}`)
+    Logger.debug(`Get stream params for ${iCloudUrl}`)
     return findDirectUrlViaAPI(iCloudUrl)
         .catch(err => {
-            console.log(err)
+            Logger.error(err)
             return findDirectUrlViaBrowser(iCloudUrl)
         })
 }
@@ -192,6 +193,7 @@ function findDirectUrlViaAPI(iCloudUrl) {
  * @deprecated Will be deleted or should be updated. Use findDirectUrlViaAPI instead.
  */
 function findDirectUrlViaBrowser(iCloudUrl) {
+    Logger.warning('findDirectUrlViaBrowser is deprecated!');
     return (async () => {
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
@@ -216,6 +218,5 @@ function findDirectUrlViaBrowser(iCloudUrl) {
 }
 
 app.listen(port, '0.0.0.0', () => {
-    console.log(`iCloud Streamer listening on port ${port}`)
+    Logger.debug(`iCloud Streamer listening on port ${port}`)
 });
-
