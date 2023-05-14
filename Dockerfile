@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY index.js .
+COPY logger.js .
 COPY util.js .
 COPY .env .
 
