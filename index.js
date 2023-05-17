@@ -38,13 +38,13 @@ app.post('/api/stream', (req, response) => {
             if (res.status === 200) {
                 const fileName = res.data['results'][0]['share']['fields']['cloudkit.title']['value'];
                 const fileExtension = res.data['results'][0]['rootRecord']['fields']['extension']['value'];
-				const filmName = fileName.replace(/\s/g, '_') + '.' + fileExtension;
+                const filmName = fileName.replace(/\s/g, '_') + '.' + fileExtension;
 
-				let filePath = iCloudUrl.split('/').pop().split('#')[0] + '/' + filmName;
+                let filePath = iCloudUrl.split('/').pop().split('#')[0] + '/' + filmName;
 
-				iCloudUrlToShortcut.set(filePath, iCloudUrl);
+                iCloudUrlToShortcut.set(filePath, iCloudUrl);
 				
-				Logger.debug('Movie title successfully retrieved: ' + filmName);
+                Logger.debug('Movie title successfully retrieved: ' + filmName);
 				
                 return response.send({url: host + '/api/stream/' + filePath});
             }
@@ -73,7 +73,7 @@ app.get('/playlist', (req, response) => {
     const iCloudUrl = req.query['url'];
     if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
         response.status(400).send({err: 'URL is not valid'});
-		Logger.error('URL is not valid: ' + iCloudUrl);
+	Logger.error('URL is not valid: ' + iCloudUrl);
         return
     }
 
