@@ -24,24 +24,35 @@ app.use(bodyParser.raw());
 
 const iCloudUrlToShortcut = new Map;
 
-app.post('/api/stream', (req, res) => {
+app.post('/api/stream', (req, response) => {
     const iCloudUrl = req.body.url;
     if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
-        res.status(400).send({err: 'URL is not valid'});
+        response.status(400).send({err: 'URL is not valid'});
         return
     }
+	
+	return axios.post(ICLOUD_API, {
+        "shortGUIDs": [{"value": getFileId(iCloudUrl)}]
+    })
+        .then(res => {
+            if (res.status === 200) {
+                const fileName = res.data['results'][0]['share']['fields']['cloudkit.title']['value'];
+                const fileExtension = res.data['results'][0]['rootRecord']['fields']['extension']['value'];
+				const filmName = fileName.replace(/\s/g, '_') + '.' + fileExtension;
 
-    let fileName = iCloudUrl.split('#').pop();
-    if (fileName.startsWith('https://')) {
-        fileName = 'movie'
-    }
-    fileName = fileName + '.mp4'
+				let filePath = iCloudUrl.split('/').pop().split('#')[0] + '/' + filmName;
 
-    let filePath = iCloudUrl.split('/').pop().split('#')[0] + '/' + fileName;
-
-    iCloudUrlToShortcut.set(filePath, iCloudUrl);
-
-    res.send({url: host + '/api/stream/' + filePath});
+				iCloudUrlToShortcut.set(filePath, iCloudUrl);
+				
+				Logger.debug('Movie title successfully retrieved: ' + filmName);
+				
+                return response.send({url: host + '/api/stream/' + filePath});
+            }
+        })
+        .catch(error => {
+            Logger.error(error);
+            response.status(500).send({err: error});
+        })
 })
 
 app.get('/api/stream/:fileId/:fileName', (req, res) => {
@@ -62,6 +73,7 @@ app.get('/playlist', (req, response) => {
     const iCloudUrl = req.query['url'];
     if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
         response.status(400).send({err: 'URL is not valid'});
+		Logger.error('URL is not valid: ' + iCloudUrl);
         return
     }
 
@@ -73,7 +85,7 @@ app.get('/playlist', (req, response) => {
                 const directUrl = res.data['results'][0]['rootRecord']['fields']['fileContent']['value']['downloadURL'];
 
                 const fileName = res.data['results'][0]['share']['fields']['cloudkit.title']['value'];
-                const fileExtension = res.data['results'][0]['share']['fields']['cloudkit.type']['value'];
+                const fileExtension = res.data['results'][0]['rootRecord']['fields']['extension']['value'];
 
                 response.attachment(fileName + '.' + fileExtension + `.m3u`)
                 return response.send(
