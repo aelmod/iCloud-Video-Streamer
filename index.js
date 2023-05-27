@@ -8,6 +8,7 @@ import {v4 as uuidv4} from 'uuid';
 import {getRange, getFileId, isEmpty, getStreamOptions, isValidHttpUrl} from './util.js'
 import 'dotenv/config'
 import * as Logger from './logger.js';
+import {pathToRegexp} from 'path-to-regexp';
 
 const ICLOUD_API = `https://ckdatabasews.icloud.com/database/1/com.apple.cloudkit/production/public/records/resolve?ckjsBuildVersion=2207ProjectDev37&ckjsVersion=2.6.1&clientBuildNumber=2207Project40&clientMasteringNumber=2207B37&clientId=${uuidv4()}`;
 
@@ -37,9 +38,15 @@ const verifyToken = (req, res, next) => {
     }
 }
 
+const unless = (middleware, method, path) => (req, res, next) => {
+    return pathToRegexp(path).exec(req.url) && req.method === method ? next() : middleware(req, res, next)
+};
+
+app.use(unless(verifyToken, 'GET', '/api/stream/:fileId/:fileName'));
+
 const iCloudUrlToShortcut = new Map;
 
-app.post('/api/stream', verifyToken, (req, response) => {
+app.post('/api/stream', (req, response) => {
     const iCloudUrl = req.body.url;
     if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
         response.status(400).send({err: 'URL is not valid'});
