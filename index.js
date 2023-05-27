@@ -25,7 +25,7 @@ app.use(bodyParser.raw());
 const tokenPrefix = process.env.TOKEN_PREFIX
 const token = process.env.TOKEN
 const verifyToken = (req, res, next) => {
-    if (req.headers && req.headers.authorization && req.headers.authorization.substring(0, 3) === tokenPrefix) {
+    if (req.headers && req.headers.authorization && req.headers.authorization.substring(0, tokenPrefix.length) === tokenPrefix) {
         if (req.headers.authorization === tokenPrefix + token)
             next();
         else {
