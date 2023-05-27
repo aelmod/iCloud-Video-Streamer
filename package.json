@@ -9,7 +9,7 @@
   },
   "keywords": ["icloud", "stream"],
   "author": "aelmod",
-  "homepage": "https://github.com/aelmod/iCloud-Video-Streamer",
+  "repository": "https://github.com/aelmod/iCloud-Video-Streamer",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.26.0",
