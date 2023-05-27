@@ -1,14 +1,15 @@
 {
   "name": "icloud-video-streamer",
-  "version": "0.1.0",
-  "description": "Stream your videos or films from the iCloud Drive",
+  "version": "0.2.0",
+  "description": "Stream your videos or movies from the iCloud Drive",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["icloud", "stream"],
+  "author": "aelmod",
+  "homepage": "https://github.com/aelmod/iCloud-Video-Streamer",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.26.0",
