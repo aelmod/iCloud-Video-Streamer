@@ -22,20 +22,41 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 app.use(bodyParser.raw());
 
+const tokenPrefix = process.env.TOKEN_PREFIX
+const token = process.env.TOKEN
+const verifyToken = (req, res, next) => {
+    if (req.headers && req.headers.authorization && req.headers.authorization.substring(0, 3) === tokenPrefix) {
+        if (req.headers.authorization === tokenPrefix + token)
+            next();
+        else {
+            Logger.error(`Unauthorized: ${req.headers['x-forwarded-for'] || req.socket.remoteAddress} - ${req.originalUrl}`);
+            res.status(401).send({err: 'Unauthorized'});
+            return
+        }
+    } else {
+        Logger.error(`Unauthorized: ${req.headers['x-forwarded-for'] || req.socket.remoteAddress} - ${req.originalUrl}`);
+        res.status(401).send({err: 'Unauthorized'});
+        return
+    }
+}
+app.use(verifyToken);
+
 const iCloudUrlToShortcut = new Map;
 
 app.post('/api/stream', (req, response) => {
     const iCloudUrl = req.body.url;
     if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
         response.status(400).send({err: 'URL is not valid'});
+        Logger.error(`URL is not valid: ${iCloudUrl}`);
         return
     }
-	
-	return axios.post(ICLOUD_API, {
+
+    return axios.post(ICLOUD_API, {
         "shortGUIDs": [{"value": getFileId(iCloudUrl)}]
     })
         .then(res => {
-            if (res.status === 200) {
+            const serverErrorCode = res.data['results'][0]['serverErrorCode'];
+            if (res.status === 200 && isEmpty(serverErrorCode)) {
                 const fileName = res.data['results'][0]['share']['fields']['cloudkit.title']['value'];
                 const fileExtension = res.data['results'][0]['rootRecord']['fields']['extension']['value'];
                 const filmName = fileName.replace(/\s/g, '_') + '.' + fileExtension;
@@ -43,10 +64,13 @@ app.post('/api/stream', (req, response) => {
                 let filePath = iCloudUrl.split('/').pop().split('#')[0] + '/' + filmName;
 
                 iCloudUrlToShortcut.set(filePath, iCloudUrl);
-				
-                Logger.debug('Movie title successfully retrieved: ' + filmName);
-				
+
+                Logger.debug(`Movie title successfully retrieved: ${filmName}`);
+
                 return response.send({url: host + '/api/stream/' + filePath});
+            } else {
+                Logger.error(`Error from iCloud API: ${serverErrorCode}`);
+                return response.status(500).send({err: `Error from iCloud API: ${serverErrorCode}`});
             }
         })
         .catch(error => {
@@ -63,6 +87,7 @@ app.get('/api/stream/:fileId/:fileName', (req, res) => {
 
     if (isEmpty(fileId) || isEmpty(fileName) || iCloudUrl === undefined) {
         res.status(400).send({err: 'fileId and fileName required'});
+        Logger.error(`fileId (${fileId}) and fileName (${fileName}) required`);
         return
     }
 
@@ -73,7 +98,7 @@ app.get('/playlist', (req, response) => {
     const iCloudUrl = req.query['url'];
     if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
         response.status(400).send({err: 'URL is not valid'});
-	Logger.error('URL is not valid: ' + iCloudUrl);
+        Logger.error(`URL is not valid: ${iCloudUrl}`);
         return
     }
 

@@ -2,3 +2,5 @@
 node_modules/
 *.iml
 .env
+dhparam/
+nginx-conf/
