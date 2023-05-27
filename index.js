@@ -1,4 +1,3 @@
-import puppeteer from 'puppeteer';
 import got from 'got';
 import stream from 'stream';
 import util from 'util';
@@ -31,19 +30,16 @@ const verifyToken = (req, res, next) => {
         else {
             Logger.error(`Unauthorized: ${req.headers['x-forwarded-for'] || req.socket.remoteAddress} - ${req.originalUrl}`);
             res.status(401).send({err: 'Unauthorized'});
-            return
         }
     } else {
         Logger.error(`Unauthorized: ${req.headers['x-forwarded-for'] || req.socket.remoteAddress} - ${req.originalUrl}`);
         res.status(401).send({err: 'Unauthorized'});
-        return
     }
 }
-app.use(verifyToken);
 
 const iCloudUrlToShortcut = new Map;
 
-app.post('/api/stream', (req, response) => {
+app.post('/api/stream', verifyToken, (req, response) => {
     const iCloudUrl = req.body.url;
     if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
         response.status(400).send({err: 'URL is not valid'});
@@ -92,44 +88,6 @@ app.get('/api/stream/:fileId/:fileName', (req, res) => {
     }
 
     streamFile(iCloudUrl, req, res);
-})
-
-app.get('/playlist', (req, response) => {
-    const iCloudUrl = req.query['url'];
-    if (isEmpty(iCloudUrl) || !isValidHttpUrl(iCloudUrl)) {
-        response.status(400).send({err: 'URL is not valid'});
-        Logger.error(`URL is not valid: ${iCloudUrl}`);
-        return
-    }
-
-    return axios.post(ICLOUD_API, {
-        "shortGUIDs": [{"value": getFileId(iCloudUrl)}]
-    })
-        .then(res => {
-            if (res.status === 200) {
-                const directUrl = res.data['results'][0]['rootRecord']['fields']['fileContent']['value']['downloadURL'];
-
-                const fileName = res.data['results'][0]['share']['fields']['cloudkit.title']['value'];
-                const fileExtension = res.data['results'][0]['rootRecord']['fields']['extension']['value'];
-
-                response.attachment(fileName + '.' + fileExtension + `.m3u`)
-                return response.send(
-                    [
-                        '#EXTM3U',
-                        `#EXTINF:-1,${fileName + '.' + fileExtension}`,
-                        directUrl
-                    ].join('\n')
-                );
-            }
-        })
-        .catch(error => {
-            Logger.error(error)
-            response.status(500).send({err: error});
-        })
-})
-
-app.get('/stream', (req, res) => {
-    streamFile(req.query['url'], req, res);
 })
 
 function streamFile(iCloudUrl, req, res) {
@@ -201,7 +159,6 @@ function getStreamParams(iCloudUrl, removeUrlFromCache) {
     return findDirectUrlViaAPI(iCloudUrl)
         .catch(err => {
             Logger.error(err)
-            return findDirectUrlViaBrowser(iCloudUrl)
         })
 }
 
@@ -224,34 +181,6 @@ function findDirectUrlViaAPI(iCloudUrl) {
                 return streamParams;
             }
         })
-}
-
-/**
- * @deprecated Will be deleted or should be updated. Use findDirectUrlViaAPI instead.
- */
-function findDirectUrlViaBrowser(iCloudUrl) {
-    Logger.warning('findDirectUrlViaBrowser is deprecated!');
-    return (async () => {
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-        await page.goto(iCloudUrl);
-        await page.waitForSelector('.spinner-wrapper', {hidden: true});
-        await page.click('.page-button-three', {delay: 1000});
-        setTimeout(() => browser.close(), 10000);
-
-        return new Promise(resolve =>
-            page.on('response', response => {
-                if (response.status() === 200 && response.url().startsWith("https://cvws.icloud-content.com")) {
-                    let streamParams = {
-                        directUrl: response.url(),
-                        contentLength: parseInt(response.headers()['content-length'], 10)
-                    };
-                    cache.set(iCloudUrl, streamParams);
-                    resolve(streamParams)
-                }
-            })
-        )
-    })();
 }
 
 app.listen(port, '0.0.0.0', () => {

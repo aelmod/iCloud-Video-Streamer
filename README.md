@@ -22,20 +22,11 @@ Click share on file in Finder or Files and set access setting to `Anyone with th
 
 ---
 
-# Stream video file
+Stream video file via API endpoints:
 
-You can use direct way, but not all players supports this way.
-Add iCloud URL in `url` query param. Link should look like this:
-``` bash
-http://localhost:3000/stream?url=https://www.icloud.com/iclouddrive/...
-```
-
----
-Or use API endpoints:
-
-**Init proxy file**
+**Get stream URL**
 ----
-Returns proxy file URL
+Returns URL to stream
 
 * **URL:**
 
