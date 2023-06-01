@@ -10,7 +10,7 @@ import 'dotenv/config'
 import * as Logger from './logger.js';
 import {pathToRegexp} from 'path-to-regexp';
 
-const ICLOUD_API = `https://ckdatabasews.icloud.com/database/1/com.apple.cloudkit/production/public/records/resolve?ckjsBuildVersion=2207ProjectDev37&ckjsVersion=2.6.1&clientBuildNumber=2207Project40&clientMasteringNumber=2207B37&clientId=${uuidv4()}`;
+const ICLOUD_API = `https://ckdatabasews.icloud.com/database/1/com.apple.cloudkit/production/public/records/resolve?ckjsBuildVersion=2316ProjectDev28&ckjsVersion=2.6.4&clientId=${uuidv4()}&clientBuildNumber=2316Hotfix20&clientMasteringNumber=2316Hotfix20`;
 
 const pipeline = util.promisify(stream.pipeline);
 
