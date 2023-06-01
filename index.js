@@ -44,7 +44,7 @@ const unless = (middleware, method, path, enabled) => (req, res, next) => {
     return next()
 };
 
-app.use(unless(verifyToken, 'GET', '/stream/:fileId/:fileName', !!process.env.ENABLE_AUTH));
+app.use(unless(verifyToken, 'GET', '/stream/:fileId/:fileName', process.env.ENABLE_AUTH === 'true'));
 
 const iCloudUrlToShortcut = new Map;
 
