@@ -38,11 +38,13 @@ const verifyToken = (req, res, next) => {
     }
 }
 
-const unless = (middleware, method, path) => (req, res, next) => {
-    return pathToRegexp(path).exec(req.url) && req.method === method ? next() : middleware(req, res, next)
+const unless = (middleware, method, path, enabled) => (req, res, next) => {
+    if (enabled)
+        return pathToRegexp(path).exec(req.url) && req.method === method ? next() : middleware(req, res, next)
+    return next()
 };
 
-app.use(unless(verifyToken, 'GET', '/api/stream/:fileId/:fileName'));
+app.use(unless(verifyToken, 'GET', '/api/stream/:fileId/:fileName', false /*TODO: move to env*/));
 
 const iCloudUrlToShortcut = new Map;
 
@@ -82,7 +84,7 @@ app.post('/api/stream', (req, response) => {
         })
 })
 
-app.get('/api/stream/:fileId/:fileName', (req, res) => {
+app.get('/stream/:fileId/:fileName', (req, res) => {
     const fileId = req.params['fileId'];
     const fileName = req.params['fileName'];
 
