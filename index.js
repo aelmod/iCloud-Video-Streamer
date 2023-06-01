@@ -72,7 +72,7 @@ app.post('/api/stream', (req, response) => {
 
                 Logger.debug(`Movie title successfully retrieved: ${filmName}`);
 
-                return response.send({url: host + '/api/stream/' + filePath});
+                return response.send({url: host + '/stream/' + filePath});
             } else {
                 Logger.error(`Error from iCloud API: ${serverErrorCode}`);
                 return response.status(500).send({err: `Error from iCloud API: ${serverErrorCode}`});
