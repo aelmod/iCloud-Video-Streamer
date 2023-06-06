@@ -43,7 +43,7 @@ Returns URL to stream
 * **Success Response:**
 
     * **Code:** 200 OK<br />
-      **Content:** `{ url: "http://localhost:3000/api/stream/.../01-_Pilot.mp4" }`
+      **Content:** `{ url: "http://localhost:3000/stream/.../01-_Pilot.mp4" }`
 
 * **Error Response:**
 
@@ -56,7 +56,7 @@ Proxy file URL (you can paste it in browser, VLC player etc.)
 
 * **URL:**
 
-  `/api/stream`
+  `/stream`
 
 * **Method:**
 
