@@ -64,13 +64,13 @@ app.post('/api/stream', (req, response) => {
             if (res.status === 200 && isEmpty(serverErrorCode)) {
                 const fileName = res.data['results'][0]['share']['fields']['cloudkit.title']['value'];
                 const fileExtension = res.data['results'][0]['rootRecord']['fields']['extension']['value'];
-                const filmName = fileName.replace(/\s/g, '_') + '.' + fileExtension;
+                const videoName = fileName.replace(/\s/g, '_') + '.' + fileExtension;
 
-                let filePath = iCloudUrl.split('/').pop().split('#')[0] + '/' + filmName;
+                let filePath = iCloudUrl.split('/').pop().split('#')[0] + '/' + videoName;
 
                 iCloudUrlToShortcut.set(filePath, iCloudUrl);
 
-                Logger.debug(`Video title successfully retrieved: ${filmName}`);
+                Logger.debug(`Video title successfully retrieved: ${videoName}`);
 
                 return response.send({url: host + '/stream/' + filePath});
             } else {
