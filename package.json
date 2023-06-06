@@ -1,7 +1,7 @@
 {
   "name": "icloud-video-streamer",
   "version": "0.2.0",
-  "description": "Stream your videos or movies from the iCloud Drive",
+  "description": "Stream your videos from the iCloud Drive",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

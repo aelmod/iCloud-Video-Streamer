@@ -70,7 +70,7 @@ app.post('/api/stream', (req, response) => {
 
                 iCloudUrlToShortcut.set(filePath, iCloudUrl);
 
-                Logger.debug(`Movie title successfully retrieved: ${filmName}`);
+                Logger.debug(`Video title successfully retrieved: ${filmName}`);
 
                 return response.send({url: host + '/stream/' + filePath});
             } else {
